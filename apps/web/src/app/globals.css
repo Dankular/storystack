@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-reading: Georgia, serif;
+  --reading-font-size: 18px;
+  --reading-line-height: 1.8;
+  --reading-max-width: 720px;
+
+  /* Reader customization */
+  --reader-bg: #f8f9fa;
+  --reader-font-size: 18px;
+  --reader-line-height: 1.8;
+  --reader-font-family: Georgia, serif;
+}
+
+body {
+  @apply bg-white text-gray-900 antialiased;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+
+  body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
+/* Reading mode styles */
+.reading-mode {
+  font-family: var(--font-reading);
+  font-size: var(--reading-font-size);
+  line-height: var(--reading-line-height);
+  max-width: var(--reading-max-width);
+  margin: 0 auto;
+}

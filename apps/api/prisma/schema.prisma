@@ -1,0 +1,486 @@
+// StoryStack Database Schema
+// Prisma schema for the story hosting platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum StoryStatus {
+  DRAFT
+  ONGOING
+  COMPLETED
+  HIATUS
+}
+
+enum ContentRating {
+  GENERAL
+  TEEN
+  MATURE
+  EXPLICIT
+}
+
+enum TagType {
+  GENRE
+  THEME
+  CHARACTER
+  RELATIONSHIP
+  WARNING
+  ADDITIONAL
+}
+
+// ============================================
+// USER
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  displayName  String?
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  stories         Story[]
+  comments        Comment[]
+  reviews         Review[]
+  readingProgress ReadingProgress[]
+  likes           Like[]
+  followedAuthors UserFollow[]      @relation("Follower")
+  followers       UserFollow[]      @relation("Following")
+  storyFollows    StoryFollow[]
+  readingLists    ReadingList[]
+  notifications   Notification[]
+  authorProfile   AuthorProfile?
+  sentTips        Tip[]             @relation("TipSender")
+  storyViews      StoryView[]
+  chapterViews    ChapterView[]
+
+  @@index([email])
+  @@index([username])
+}
+
+// ============================================
+// STORY & CHAPTERS
+// ============================================
+
+model Story {
+  id            String        @id @default(cuid())
+  title         String
+  description   String
+  coverImageUrl String?
+  status        StoryStatus   @default(DRAFT)
+  rating        ContentRating @default(GENERAL)
+  wordCount     Int           @default(0)
+  chapterCount  Int           @default(0)
+  viewCount     Int           @default(0)
+  likeCount     Int           @default(0)
+  reviewCount   Int           @default(0)
+  avgRating     Float?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  chapters         Chapter[]
+  tags             StoryTag[]
+  comments         Comment[]
+  reviews          Review[]
+  likes            Like[]
+  readingProgress  ReadingProgress[]
+  followers        StoryFollow[]
+  readingListItems ReadingListItem[]
+  tips             Tip[]
+  views            StoryView[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([rating])
+  @@index([publishedAt])
+  @@index([createdAt])
+  @@index([avgRating])
+}
+
+model Chapter {
+  id                String    @id @default(cuid())
+  title             String
+  content           String
+  chapterNumber     Int
+  wordCount         Int       @default(0)
+  authorNotesBefore String?
+  authorNotesAfter  String?
+  isPublished       Boolean   @default(false)
+  publishedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  comments        Comment[]
+  readingProgress ReadingProgress[]
+  views           ChapterView[]
+
+  @@unique([storyId, chapterNumber])
+  @@index([storyId])
+  @@index([isPublished])
+}
+
+// ============================================
+// TAGGING SYSTEM
+// ============================================
+
+model Tag {
+  id            String   @id @default(cuid())
+  canonicalName String   @unique
+  type          TagType
+  description   String?
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  synonyms  TagSynonym[]
+  storyTags StoryTag[]
+
+  @@index([type])
+  @@index([canonicalName])
+}
+
+model TagSynonym {
+  id          String @id @default(cuid())
+  synonymName String @unique
+
+  // Relations
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@index([tagId])
+}
+
+model StoryTag {
+  id            String   @id @default(cuid())
+  addedByAuthor Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, tagId])
+  @@index([storyId])
+  @@index([tagId])
+}
+
+// ============================================
+// ENGAGEMENT
+// ============================================
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  storyId String?
+  story   Story?  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  chapterId String?
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  // Nested comments
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([authorId])
+  @@index([storyId])
+  @@index([chapterId])
+  @@index([parentId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
+  @@index([storyId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 stars
+  title     String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, storyId]) // One review per user per story
+  @@index([authorId])
+  @@index([storyId])
+  @@index([rating])
+}
+
+// ============================================
+// FOLLOWS
+// ============================================
+
+model UserFollow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  followerId String
+  follower   User   @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+
+  followingId String
+  following   User   @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model StoryFollow {
+  id            String   @id @default(cuid())
+  notifyUpdates Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
+  @@index([storyId])
+}
+
+// ============================================
+// READING PROGRESS & LIBRARY
+// ============================================
+
+model ReadingProgress {
+  id         String   @id @default(cuid())
+  position   Int      @default(0) // Character offset or scroll position
+  percentage Float    @default(0) // 0-100 completion percentage
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
+  @@index([storyId])
+}
+
+model ReadingList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items ReadingListItem[]
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model ReadingListItem {
+  id      String   @id @default(cuid())
+  order   Int      @default(0)
+  note    String?
+  addedAt DateTime @default(now())
+
+  // Relations
+  readingListId String
+  readingList   ReadingList @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([readingListId, storyId])
+  @@index([readingListId])
+  @@index([storyId])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  NEW_CHAPTER
+  NEW_FOLLOWER
+  COMMENT_ON_STORY
+  COMMENT_REPLY
+  STORY_LIKE
+  NEW_REVIEW
+  NEW_TIP
+}
+
+// ============================================
+// MONETISATION
+// ============================================
+
+model AuthorProfile {
+  id                 String   @id @default(cuid())
+  stripeAccountId    String?  @unique // Stripe Connect account ID
+  stripeOnboarded    Boolean  @default(false)
+  tipsEnabled        Boolean  @default(false)
+  minimumTipAmount   Int      @default(100) // In cents, default $1
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  receivedTips Tip[] @relation("TipRecipient")
+
+  @@index([stripeAccountId])
+}
+
+model Tip {
+  id                   String   @id @default(cuid())
+  amount               Int      // Amount in cents
+  currency             String   @default("usd")
+  message              String?
+  stripePaymentIntentId String? @unique
+  status               TipStatus @default(PENDING)
+  createdAt            DateTime @default(now())
+
+  // Relations
+  senderId String
+  sender   User   @relation("TipSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String
+  recipient   AuthorProfile @relation("TipRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  storyId String?
+  story   Story?  @relation(fields: [storyId], references: [id], onDelete: SetNull)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([storyId])
+  @@index([status])
+}
+
+enum TipStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model StoryView {
+  id        String   @id @default(cuid())
+  viewedAt  DateTime @default(now())
+  country   String?
+  referrer  String?
+  deviceType String? // mobile, desktop, tablet
+
+  // Relations
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([storyId])
+  @@index([viewedAt])
+  @@index([userId])
+}
+
+model ChapterView {
+  id           String   @id @default(cuid())
+  viewedAt     DateTime @default(now())
+  readingTime  Int?     // Seconds spent reading
+  completedAt  DateTime? // When they finished the chapter
+  scrollDepth  Float?   // 0-100 percentage scrolled
+  country      String?
+  referrer     String?
+  deviceType   String?
+
+  // Relations
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([chapterId])
+  @@index([viewedAt])
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  message   String
+  data      Json?            // Additional data (storyId, chapterId, etc.)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
