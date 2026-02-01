@@ -13,6 +13,7 @@ import { FollowButton } from '@/components/follow-button';
 import { StoryFollowButton } from '@/components/story-follow-button';
 import { AddToListButton } from '@/components/add-to-list-button';
 import { TipButton } from '@/components/tip-button';
+import { ExportButton } from '@/components/export-button';
 
 export default function StoryDetailPage() {
   const params = useParams();
@@ -123,16 +124,20 @@ export default function StoryDetailPage() {
 
                 <div className="flex gap-2">
                   {isAuthor ? (
-                    <Link href={`/write/${story.id}`}>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </Link>
+                    <>
+                      <Link href={`/write/${story.id}`}>
+                        <Button variant="outline" size="sm">
+                          Edit
+                        </Button>
+                      </Link>
+                      <ExportButton storyId={story.id} storyTitle={story.title} />
+                    </>
                   ) : (
                     <>
                       <FollowButton userId={story.author.id} />
                       <StoryFollowButton storyId={story.id} />
                       <AddToListButton storyId={story.id} />
+                      <ExportButton storyId={story.id} storyTitle={story.title} />
                       <TipButton
                         authorId={story.author.id}
                         authorName={story.author.displayName || story.author.username}

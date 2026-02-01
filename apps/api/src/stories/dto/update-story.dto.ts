@@ -1,12 +1,17 @@
 import {
   IsString,
   IsOptional,
-  IsEnum,
+  IsIn,
   IsArray,
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ContentRating, StoryStatus } from '@prisma/client';
+
+const ContentRatings = ['GENERAL', 'TEEN', 'MATURE', 'EXPLICIT'] as const;
+type ContentRating = typeof ContentRatings[number];
+
+const StoryStatuses = ['DRAFT', 'ONGOING', 'COMPLETED', 'HIATUS'] as const;
+type StoryStatus = typeof StoryStatuses[number];
 
 export class UpdateStoryDto {
   @IsOptional()
@@ -25,11 +30,11 @@ export class UpdateStoryDto {
   coverImageUrl?: string;
 
   @IsOptional()
-  @IsEnum(StoryStatus)
+  @IsIn(StoryStatuses)
   status?: StoryStatus;
 
   @IsOptional()
-  @IsEnum(ContentRating)
+  @IsIn(ContentRatings)
   rating?: ContentRating;
 
   @IsOptional()

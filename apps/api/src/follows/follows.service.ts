@@ -104,7 +104,7 @@ export class FollowsService {
     ]);
 
     return {
-      users: followers.map((f) => f.follower),
+      users: followers.map((f: typeof followers[number]) => f.follower),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -134,7 +134,7 @@ export class FollowsService {
     ]);
 
     return {
-      users: following.map((f) => f.following),
+      users: following.map((f: typeof following[number]) => f.following),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -238,9 +238,9 @@ export class FollowsService {
     ]);
 
     return {
-      stories: follows.map((f) => ({
+      stories: follows.map((f: typeof follows[number]) => ({
         ...f.story,
-        tags: f.story.tags.map((st) => st.tag),
+        tags: f.story.tags.map((st: typeof f.story.tags[number]) => st.tag),
         followedAt: f.createdAt,
         notifyUpdates: f.notifyUpdates,
       })),

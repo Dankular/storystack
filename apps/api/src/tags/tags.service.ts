@@ -1,7 +1,8 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { CreateTagDto } from './dto';
-import { TagType } from '@prisma/client';
+
+type TagType = 'GENRE' | 'THEME' | 'CHARACTER' | 'RELATIONSHIP' | 'WARNING' | 'ADDITIONAL';
 
 @Injectable()
 export class TagsService {

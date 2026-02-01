@@ -3,7 +3,8 @@ import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto';
 import { AddSynonymDto } from './dto/add-synonym.dto';
 import { JwtAuthGuard, Public } from '../auth';
-import { TagType } from '@prisma/client';
+
+type TagType = 'GENRE' | 'THEME' | 'CHARACTER' | 'RELATIONSHIP' | 'WARNING' | 'ADDITIONAL';
 
 @Controller('tags')
 export class TagsController {

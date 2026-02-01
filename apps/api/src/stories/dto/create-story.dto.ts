@@ -1,12 +1,14 @@
 import {
   IsString,
   IsOptional,
-  IsEnum,
+  IsIn,
   IsArray,
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ContentRating } from '@prisma/client';
+
+const ContentRatings = ['GENERAL', 'TEEN', 'MATURE', 'EXPLICIT'] as const;
+type ContentRating = typeof ContentRatings[number];
 
 export class CreateStoryDto {
   @IsString()
@@ -23,7 +25,7 @@ export class CreateStoryDto {
   coverImageUrl?: string;
 
   @IsOptional()
-  @IsEnum(ContentRating)
+  @IsIn(ContentRatings)
   rating?: ContentRating;
 
   @IsOptional()

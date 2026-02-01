@@ -265,21 +265,34 @@ This scales well until you hit significant traffic (10k+ daily users).
 
 ## Development Priorities
 
-### Phase 1 (MVP)
-- [ ] User auth + profiles
-- [ ] Story/chapter CRUD
-- [ ] Basic tagging (no synonyms yet)
-- [ ] Search integration
-- [ ] Reading experience (progress tracking, basic customisation)
+### Phase 1 (MVP) - COMPLETE
+- [x] User auth + profiles
+- [x] Story/chapter CRUD
+- [x] Basic tagging (no synonyms yet)
+- [x] Search integration
+- [x] Reading experience (progress tracking, basic customisation)
 
-### Phase 2
-- [ ] Tag synonym system
-- [ ] Comments
-- [ ] Follows/notifications
-- [ ] Reading lists/library
+### Phase 2 - COMPLETE
+- [x] Tag synonym system
+- [x] Comments
+- [x] Follows/notifications
+- [x] Reading lists/library
 
-### Phase 3
-- [ ] Reviews vs comments distinction
-- [ ] Monetisation (Stripe integration)
-- [ ] Analytics dashboard for authors
-- [ ] Advanced search filters
+### Phase 3 - COMPLETE
+- [x] Reviews vs comments distinction
+- [x] Monetisation (Stripe integration)
+- [x] Analytics dashboard for authors
+- [x] Advanced search filters
+- [x] Meilisearch full-text search integration
+
+### Phase 4 (In Progress)
+- [x] Customizable reader (fonts, themes, dark mode)
+- [x] EPUB/PDF export
+- [x] Scheduled chapter publishing
+- [x] Rich text editor (TipTap)
+- [x] Story import/export
+- [x] Co-author support
+- [x] Inline paragraph comments
+- [x] Block/mute and report system
+- [x] Email notifications (Resend)
+- [x] Reading history tracking

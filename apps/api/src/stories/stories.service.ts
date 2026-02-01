@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { CreateStoryDto, UpdateStoryDto } from './dto';
-import { StoryStatus, Prisma } from '@prisma/client';
+
+type StoryStatus = 'DRAFT' | 'ONGOING' | 'COMPLETED' | 'HIATUS';
 
 @Injectable()
 export class StoriesService {
@@ -71,7 +72,7 @@ export class StoriesService {
     const limit = Math.min(options?.limit || 20, 50);
     const skip = (page - 1) * limit;
 
-    const where: Prisma.StoryWhereInput = {
+    const where: Record<string, any> = {
       ...(options?.authorId && { authorId: options.authorId }),
       ...(options?.search && {
         OR: [
@@ -80,11 +81,11 @@ export class StoriesService {
         ],
       }),
       // Status filters
-      ...(options?.completedOnly && { status: StoryStatus.COMPLETED }),
-      ...(options?.ongoingOnly && { status: StoryStatus.ONGOING }),
+      ...(options?.completedOnly && { status: 'COMPLETED' }),
+      ...(options?.ongoingOnly && { status: 'ONGOING' }),
       ...(options?.status && !options?.completedOnly && !options?.ongoingOnly && { status: options.status }),
       // Only show published stories unless filtered by author
-      ...(!options?.authorId && !options?.status && !options?.completedOnly && !options?.ongoingOnly && { status: { not: StoryStatus.DRAFT } }),
+      ...(!options?.authorId && !options?.status && !options?.completedOnly && !options?.ongoingOnly && { status: { not: 'DRAFT' } }),
       // Word count filters
       ...(options?.minWordCount && { wordCount: { gte: options.minWordCount } }),
       ...(options?.maxWordCount && { wordCount: { lte: options.maxWordCount } }),
@@ -116,7 +117,7 @@ export class StoriesService {
     };
 
     // Determine sort order
-    let orderBy: Prisma.StoryOrderByWithRelationInput = { updatedAt: 'desc' };
+    let orderBy: Record<string, 'asc' | 'desc'> = { updatedAt: 'desc' };
     switch (options?.sortBy) {
       case 'newest':
         orderBy = { publishedAt: 'desc' };
@@ -185,13 +186,13 @@ export class StoriesService {
       throw new NotFoundException('Story not found');
     }
 
-    const tagIds = story.tags.map((t) => t.tagId);
+    const tagIds = story.tags.map((t: { tagId: string }) => t.tagId);
 
     // Find stories with similar tags
     const similarStories = await this.prisma.story.findMany({
       where: {
         id: { not: storyId },
-        status: { not: StoryStatus.DRAFT },
+        status: { not: 'DRAFT' },
         tags: {
           some: {
             tagId: { in: tagIds },
@@ -263,7 +264,7 @@ export class StoriesService {
     }
 
     // Check if draft and not the author
-    if (story.status === StoryStatus.DRAFT && story.authorId !== userId) {
+    if (story.status === 'DRAFT' && story.authorId !== userId) {
       throw new NotFoundException('Story not found');
     }
 
@@ -282,7 +283,7 @@ export class StoriesService {
     const stories = await this.prisma.story.findMany({
       where: {
         authorId,
-        ...(!isOwner && { status: { not: StoryStatus.DRAFT } }),
+        ...(!isOwner && { status: { not: 'DRAFT' } }),
       },
       orderBy: { updatedAt: 'desc' },
       include: {
@@ -377,7 +378,7 @@ export class StoriesService {
     const updatedStory = await this.prisma.story.update({
       where: { id },
       data: {
-        status: StoryStatus.ONGOING,
+        status: 'ONGOING',
         publishedAt: story.publishedAt || new Date(),
       },
       include: {
@@ -426,7 +427,7 @@ export class StoriesService {
       select: { wordCount: true },
     });
 
-    const totalWordCount = chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+    const totalWordCount = chapters.reduce((sum: number, ch: { wordCount: number }) => sum + ch.wordCount, 0);
     const chapterCount = chapters.length;
 
     await this.prisma.story.update({

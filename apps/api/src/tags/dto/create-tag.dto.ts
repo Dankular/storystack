@@ -1,5 +1,7 @@
-import { IsString, IsEnum, IsOptional, MaxLength, MinLength } from 'class-validator';
-import { TagType } from '@prisma/client';
+import { IsString, IsIn, IsOptional, MaxLength, MinLength } from 'class-validator';
+
+const TagTypes = ['GENRE', 'THEME', 'CHARACTER', 'RELATIONSHIP', 'WARNING', 'ADDITIONAL'] as const;
+type TagType = typeof TagTypes[number];
 
 export class CreateTagDto {
   @IsString()
@@ -7,7 +9,7 @@ export class CreateTagDto {
   @MaxLength(100)
   canonicalName: string;
 
-  @IsEnum(TagType)
+  @IsIn(TagTypes)
   type: TagType;
 
   @IsOptional()

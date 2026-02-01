@@ -41,11 +41,16 @@ export class ChaptersService {
 
     const chapter = await this.prisma.chapter.create({
       data: {
-        ...dto,
+        title: dto.title,
+        content: dto.content,
+        authorNotesBefore: dto.authorNotesBefore,
+        authorNotesAfter: dto.authorNotesAfter,
         storyId,
         chapterNumber,
         wordCount,
+        isPublished: dto.isPublished ?? false,
         publishedAt: dto.isPublished ? new Date() : null,
+        scheduledPublishAt: dto.scheduledPublishAt ? new Date(dto.scheduledPublishAt) : null,
       },
     });
 
@@ -79,6 +84,7 @@ export class ChaptersService {
         wordCount: true,
         isPublished: true,
         publishedAt: true,
+        scheduledPublishAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -178,6 +184,12 @@ export class ChaptersService {
     // Set publishedAt if publishing for first time
     if (dto.isPublished && !chapter.isPublished) {
       updateData.publishedAt = new Date();
+      updateData.scheduledPublishAt = null; // Clear schedule if publishing now
+    }
+
+    // Handle scheduled publishing
+    if (dto.scheduledPublishAt !== undefined) {
+      updateData.scheduledPublishAt = dto.scheduledPublishAt ? new Date(dto.scheduledPublishAt) : null;
     }
 
     const updatedChapter = await this.prisma.chapter.update({
@@ -253,6 +265,67 @@ export class ChaptersService {
       data: {
         chapterNumber: { decrement: 1 },
       },
+    });
+  }
+
+  async publishScheduledChapters() {
+    const now = new Date();
+
+    // Find all chapters that are scheduled to be published
+    const scheduledChapters = await this.prisma.chapter.findMany({
+      where: {
+        isPublished: false,
+        scheduledPublishAt: {
+          lte: now,
+        },
+      },
+      include: {
+        story: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    const results = [];
+
+    for (const chapter of scheduledChapters) {
+      // Publish the chapter
+      await this.prisma.chapter.update({
+        where: { id: chapter.id },
+        data: {
+          isPublished: true,
+          publishedAt: now,
+          scheduledPublishAt: null,
+        },
+      });
+
+      // Update story word count
+      await this.storiesService.updateWordCount(chapter.storyId);
+
+      results.push({
+        chapterId: chapter.id,
+        chapterTitle: chapter.title,
+        storyId: chapter.storyId,
+        storyTitle: chapter.story.title,
+      });
+    }
+
+    return results;
+  }
+
+  async getScheduledChapters(userId: string) {
+    return this.prisma.chapter.findMany({
+      where: {
+        story: { authorId: userId },
+        isPublished: false,
+        scheduledPublishAt: { not: null },
+      },
+      include: {
+        story: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: { scheduledPublishAt: 'asc' },
     });
   }
 

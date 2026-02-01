@@ -67,6 +67,14 @@ model User {
   sentTips        Tip[]             @relation("TipSender")
   storyViews      StoryView[]
   chapterViews    ChapterView[]
+  savedSearches   SavedSearch[]
+  blockedUsers    UserBlock[]   @relation("Blocker")
+  blockedBy       UserBlock[]   @relation("Blocked")
+  reports         Report[]
+  collaborations  StoryCollaborator[]
+  sentInvitations     CollaboratorInvitation[] @relation("SentInvitations")
+  receivedInvitations CollaboratorInvitation[] @relation("ReceivedInvitations")
+  inlineComments      InlineComment[]
 
   @@index([email])
   @@index([username])
@@ -107,6 +115,9 @@ model Story {
   readingListItems ReadingListItem[]
   tips             Tip[]
   views            StoryView[]
+  reports          Report[]
+  collaborators    StoryCollaborator[]
+  invitations      CollaboratorInvitation[]
 
   @@index([authorId])
   @@index([status])
@@ -117,17 +128,18 @@ model Story {
 }
 
 model Chapter {
-  id                String    @id @default(cuid())
-  title             String
-  content           String
-  chapterNumber     Int
-  wordCount         Int       @default(0)
-  authorNotesBefore String?
-  authorNotesAfter  String?
-  isPublished       Boolean   @default(false)
-  publishedAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  title               String
+  content             String
+  chapterNumber       Int
+  wordCount           Int       @default(0)
+  authorNotesBefore   String?
+  authorNotesAfter    String?
+  isPublished         Boolean   @default(false)
+  publishedAt         DateTime?
+  scheduledPublishAt  DateTime? // Schedule future publishing
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   // Relations
   storyId String
@@ -136,10 +148,12 @@ model Chapter {
   comments        Comment[]
   readingProgress ReadingProgress[]
   views           ChapterView[]
+  inlineComments  InlineComment[]
 
   @@unique([storyId, chapterNumber])
   @@index([storyId])
   @@index([isPublished])
+  @@index([scheduledPublishAt])
 }
 
 // ============================================
@@ -218,6 +232,34 @@ model Comment {
   @@index([authorId])
   @@index([storyId])
   @@index([chapterId])
+  @@index([parentId])
+}
+
+// Inline paragraph comments
+model InlineComment {
+  id             String   @id @default(cuid())
+  content        String
+  paragraphIndex Int      // 0-based index of the paragraph in the chapter
+  textSelection  String?  // Optional highlighted text for context
+  isResolved     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  // Nested replies
+  parentId String?
+  parent   InlineComment?  @relation("InlineCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  InlineComment[] @relation("InlineCommentReplies")
+
+  @@index([authorId])
+  @@index([chapterId])
+  @@index([paragraphIndex])
   @@index([parentId])
 }
 
@@ -483,4 +525,156 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// ============================================
+// SAVED SEARCHES
+// ============================================
+
+model SavedSearch {
+  id               String   @id @default(cuid())
+  name             String
+  query            String
+  filters          Json?    // Stored filter configuration
+  notifyNewResults Boolean  @default(false)
+  lastCheckedAt    DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([notifyNewResults])
+}
+
+// ============================================
+// MODERATION
+// ============================================
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // The user who is blocking
+  blockerId String
+  blocker   User   @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  // The user being blocked
+  blockedId String
+  blocked   User   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  resolution  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Reporter
+  reporterId String
+  reporter   User   @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  // What's being reported (one of these will be set)
+  storyId   String?
+  story     Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  userId    String?  // Reported user
+  commentId String?
+  reviewId  String?
+
+  @@index([reporterId])
+  @@index([storyId])
+  @@index([status])
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  COPYRIGHT_VIOLATION
+  HATE_SPEECH
+  VIOLENCE
+  IMPERSONATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+// ============================================
+// CO-AUTHOR / COLLABORATION
+// ============================================
+
+enum CollaboratorRole {
+  CO_AUTHOR      // Can edit chapters, full writing access
+  EDITOR         // Can suggest edits, comment on drafts
+  BETA_READER    // Can view unpublished chapters, leave feedback
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model StoryCollaborator {
+  id        String           @id @default(cuid())
+  role      CollaboratorRole
+  canPublish Boolean         @default(false) // Only owner and co-authors with this permission can publish
+  addedAt   DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relations
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@index([userId])
+}
+
+model CollaboratorInvitation {
+  id          String           @id @default(cuid())
+  role        CollaboratorRole
+  canPublish  Boolean          @default(false)
+  message     String?
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  respondedAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  inviterId String
+  inviter   User   @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  inviteeId String
+  invitee   User   @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, inviteeId, status]) // Only one pending invitation per user per story
+  @@index([storyId])
+  @@index([inviterId])
+  @@index([inviteeId])
+  @@index([status])
 }

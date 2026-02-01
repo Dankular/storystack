@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui';
 import { NotificationsDropdown } from './notifications-dropdown';
+import { GlobalSearch } from './global-search';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -40,6 +41,10 @@ export function Navbar() {
                 </>
               )}
             </div>
+          </div>
+
+          <div className="hidden md:block">
+            <GlobalSearch />
           </div>
 
           <div className="flex items-center space-x-4">

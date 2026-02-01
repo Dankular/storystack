@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MaxLength, MinLength, IsBoolean, IsNumber } from 'class-validator';
+import { IsString, IsOptional, MaxLength, MinLength, IsBoolean, IsNumber, IsDateString } from 'class-validator';
 
 export class UpdateChapterDto {
   @IsOptional()
@@ -29,4 +29,8 @@ export class UpdateChapterDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  scheduledPublishAt?: string | null;
 }

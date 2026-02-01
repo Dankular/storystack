@@ -89,14 +89,14 @@ export class ReadingListsService {
 
     return {
       ...list,
-      items: list.items.map((item) => ({
+      items: list.items.map((item: typeof list.items[number]) => ({
         id: item.id,
         order: item.order,
         note: item.note,
         addedAt: item.addedAt,
         story: {
           ...item.story,
-          tags: item.story.tags.map((st) => st.tag),
+          tags: item.story.tags.map((st: typeof item.story.tags[number]) => st.tag),
         },
       })),
     };

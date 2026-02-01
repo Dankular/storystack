@@ -12,7 +12,8 @@ import {
 import { StoriesService } from './stories.service';
 import { CreateStoryDto, UpdateStoryDto } from './dto';
 import { JwtAuthGuard, CurrentUser, Public } from '../auth';
-import { StoryStatus } from '@prisma/client';
+
+type StoryStatus = 'DRAFT' | 'ONGOING' | 'COMPLETED' | 'HIATUS';
 
 @Controller('stories')
 export class StoriesController {

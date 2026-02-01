@@ -1,7 +1,19 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+
+// Define User type inline to avoid Prisma client import issues
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  passwordHash: string;
+  displayName: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 @Injectable()
 export class UsersService {

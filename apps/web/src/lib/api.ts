@@ -404,6 +404,134 @@ export const api = {
 
   getTopStories: (token: string, limit = 5) =>
     fetchApi<any[]>(`/analytics/top-stories?limit=${limit}`, { token }),
+
+  // Search
+  getSearchStatus: () =>
+    fetchApi<{ enabled: boolean }>('/search/status'),
+
+  searchStories: (params: {
+    query: string;
+    page?: number;
+    limit?: number;
+    status?: string;
+    rating?: string;
+    minWordCount?: number;
+    maxWordCount?: number;
+    minRating?: number;
+    tagIds?: string[];
+    excludeTagIds?: string[];
+    sort?: 'newest' | 'popular' | 'views' | 'rating' | 'updated';
+  }) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('query', params.query);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.status) searchParams.set('status', params.status);
+    if (params.rating) searchParams.set('rating', params.rating);
+    if (params.minWordCount) searchParams.set('minWordCount', params.minWordCount.toString());
+    if (params.maxWordCount) searchParams.set('maxWordCount', params.maxWordCount.toString());
+    if (params.minRating) searchParams.set('minRating', params.minRating.toString());
+    if (params.tagIds?.length) searchParams.set('tagIds', params.tagIds.join(','));
+    if (params.excludeTagIds?.length) searchParams.set('excludeTagIds', params.excludeTagIds.join(','));
+    if (params.sort) searchParams.set('sort', params.sort);
+    return fetchApi<{ stories: any[]; pagination: any; processingTimeMs?: number }>(
+      `/search/stories?${searchParams.toString()}`
+    );
+  },
+
+  searchUsers: (params: { query: string; page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('query', params.query);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    return fetchApi<{ users: any[]; pagination: any }>(`/search/users?${searchParams.toString()}`);
+  },
+
+  searchTagsAdvanced: (params: { query: string; page?: number; limit?: number; type?: string }) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('query', params.query);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.type) searchParams.set('type', params.type);
+    return fetchApi<{ tags: any[]; pagination: any }>(`/search/tags?${searchParams.toString()}`);
+  },
+
+  searchAll: (query: string) =>
+    fetchApi<{
+      stories: { stories: any[]; pagination: any };
+      users: { users: any[]; pagination: any };
+      tags: { tags: any[]; pagination: any };
+    }>(`/search/all?q=${encodeURIComponent(query)}`),
+
+  // Saved Searches
+  getSavedSearches: (token: string) =>
+    fetchApi<any[]>('/search/saved', { token }),
+
+  createSavedSearch: (
+    data: {
+      name: string;
+      query: string;
+      status?: string;
+      rating?: string;
+      minWordCount?: number;
+      maxWordCount?: number;
+      minRating?: number;
+      tagIds?: string[];
+      excludeTagIds?: string[];
+      sort?: string;
+      notifyNewResults?: boolean;
+    },
+    token: string
+  ) =>
+    fetchApi<any>('/search/saved', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  updateSavedSearch: (id: string, data: { name?: string; notifyNewResults?: boolean }, token: string) =>
+    fetchApi<any>(`/search/saved/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  deleteSavedSearch: (id: string, token: string) =>
+    fetchApi<any>(`/search/saved/${id}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  triggerReindex: (token: string) =>
+    fetchApi<{ success: boolean; message: string }>('/search/reindex', {
+      method: 'POST',
+      token,
+    }),
+
+  // Export
+  getExportPdfUrl: (storyId: string, options?: { includeAuthorNotes?: boolean; includeTableOfContents?: boolean }) => {
+    const params = new URLSearchParams();
+    if (options?.includeAuthorNotes) params.set('includeAuthorNotes', 'true');
+    if (options?.includeTableOfContents) params.set('includeTableOfContents', 'true');
+    const query = params.toString();
+    return `${API_URL}/export/stories/${storyId}/pdf${query ? `?${query}` : ''}`;
+  },
+
+  getExportEpubUrl: (storyId: string, options?: { includeAuthorNotes?: boolean; includeTableOfContents?: boolean }) => {
+    const params = new URLSearchParams();
+    if (options?.includeAuthorNotes) params.set('includeAuthorNotes', 'true');
+    if (options?.includeTableOfContents) params.set('includeTableOfContents', 'true');
+    const query = params.toString();
+    return `${API_URL}/export/stories/${storyId}/epub${query ? `?${query}` : ''}`;
+  },
+
+  getExportHtmlUrl: (storyId: string, options?: { includeAuthorNotes?: boolean; includeTableOfContents?: boolean }) => {
+    const params = new URLSearchParams();
+    if (options?.includeAuthorNotes) params.set('includeAuthorNotes', 'true');
+    if (options?.includeTableOfContents) params.set('includeTableOfContents', 'true');
+    const query = params.toString();
+    return `${API_URL}/export/stories/${storyId}/html${query ? `?${query}` : ''}`;
+  },
 };
 
 export { ApiError };
