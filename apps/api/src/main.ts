@@ -24,7 +24,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  app.getHttpAdapter().get('/healthz', (_req, res) => res.json({status: 'ok'}));
+  await app.listen(port, '0.0.0.0');
 
   console.log(`StoryStack API running on http://localhost:${port}`);
 }

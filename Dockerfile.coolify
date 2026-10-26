@@ -1,0 +1,21 @@
+FROM node:24-bookworm-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY . .
+RUN npm install
+ARG NEXT_PUBLIC_API_URL=https://storystack-api.app.khosa.co
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+FROM node:24-bookworm-slim AS common
+RUN apt-get update && apt-get install -y --no-install-recommends curl openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=build /app /app
+ENV NODE_ENV=production
+FROM common AS api
+WORKDIR /app/apps/api
+EXPOSE 3001
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]
+FROM common AS web
+WORKDIR /app/apps/web
+ENV PORT=3000 HOSTNAME=0.0.0.0
+EXPOSE 3000
+CMD ["npm", "start", "--", "--hostname", "0.0.0.0"]

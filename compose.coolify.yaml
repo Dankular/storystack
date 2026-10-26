@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: storystack
+      POSTGRES_USER: storystack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+    - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U storystack -d storystack
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  search:
+    image: getmeili/meilisearch:v1.15
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-}
+    volumes:
+    - search:/meili_data
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.coolify
+      target: api
+    restart: unless-stopped
+    environment:
+      PORT: '3001'
+      DATABASE_URL: postgresql://storystack:${POSTGRES_PASSWORD:-}@postgres:5432/storystack
+      JWT_SECRET: ${JWT_SECRET:-}
+      FRONTEND_URL: https://storystack.app.khosa.co
+      MEILISEARCH_HOST: http://search:7700
+      MEILISEARCH_API_KEY: ${MEILISEARCH_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      search:
+        condition: service_started
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://127.0.0.1:3001/healthz
+      interval: 15s
+      timeout: 5s
+      retries: 15
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.coolify
+      target: web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://storystack-api.app.khosa.co
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://127.0.0.1:3000/
+      interval: 15s
+      timeout: 5s
+      retries: 10
+volumes:
+  postgres: {}
+  search: {}
