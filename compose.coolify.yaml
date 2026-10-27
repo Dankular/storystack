@@ -36,10 +36,7 @@ services:
         max-size: 10m
         max-file: '3'
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.coolify
-      target: api
+    image: registry.app.khosa.co/apps/storystack-api:repair-20261027
     restart: unless-stopped
     environment:
       PORT: '3001'
@@ -69,10 +66,7 @@ services:
         max-size: 10m
         max-file: '3'
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.coolify
-      target: web
+    image: registry.app.khosa.co/apps/storystack-web:production-20261027
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: https://storystack-api.app.khosa.co

@@ -5,7 +5,9 @@ COPY . .
 RUN npm install
 ARG NEXT_PUBLIC_API_URL=https://storystack-api.app.khosa.co
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN npm run build -w @storystack/api \
+    && node --test apps/api/test/startup-imports.cjs \
+    && npm run build -w @storystack/web
 FROM node:24-bookworm-slim AS common
 RUN apt-get update && apt-get install -y --no-install-recommends curl openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app /app

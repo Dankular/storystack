@@ -1,0 +1,13 @@
+# Explicit source build override; production deploys pull tested images from S3.
+# Update the image tags in compose.coolify.yaml before publishing another release.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.coolify
+      target: api
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.coolify
+      target: web

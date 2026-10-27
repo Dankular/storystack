@@ -24,6 +24,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3001;
+  app.getHttpAdapter().get('/', (_req, res) => res.redirect('/api'));
   app.getHttpAdapter().get('/healthz', (_req, res) => res.json({status: 'ok'}));
   await app.listen(port, '0.0.0.0');
 
