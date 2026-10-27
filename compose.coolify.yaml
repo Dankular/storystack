@@ -15,6 +15,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    mem_limit: 192m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   search:
     image: getmeili/meilisearch:v1.15
     restart: unless-stopped
@@ -23,6 +29,12 @@ services:
       MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-}
     volumes:
     - search:/meili_data
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   api:
     build:
       context: .
@@ -50,6 +62,12 @@ services:
       interval: 15s
       timeout: 5s
       retries: 15
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   web:
     build:
       context: .
@@ -70,6 +88,12 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+    mem_limit: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 volumes:
   postgres: {}
   search: {}
